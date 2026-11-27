@@ -29,3 +29,47 @@ This kit provides **real synthetic fixtures and reusable local tools**; it inten
 - Hidden mentor assessment fixtures must remain **separate from this member-facing kit**.
 - The `requirements.txt` pins broad compatible release families; AI Lead should lock tested versions before program rollout.
 - No company-specific Git URL, API credentials, staging URLs or mentor contacts are invented. AI Lead must fill those in during kickoff.
+
+## Week 2 meeting notes API
+
+From the repository root, create a virtual environment and install the dependencies.
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+```
+
+Set `OPENAI_API_KEY` and `OPENAI_MODEL` in the ignored `.env.local` file. The evaluation uses `gpt-6-luna`. Start the API from the repository root.
+
+```bash
+.venv/bin/python -m uvicorn app.main:app --port 8002 --env-file .env.local
+```
+
+Open [Swagger UI](http://127.0.0.1:8002/docs) or send a request from a second terminal.
+
+```bash
+curl -sS http://127.0.0.1:8002/analyze-meeting \
+  -H 'Content-Type: application/json' \
+  -d '{"meeting_text":"The team agreed to update the onboarding guide. Linh will draft the update. No deadline was agreed."}'
+```
+
+The response has a summary, a list of decisions and a list of actions. Each action has an owner, task and due date. Missing owners or deadlines are returned as JSON `null`.
+
+```json
+{
+  "summary": "The team agreed to update the onboarding guide.",
+  "decisions": ["Update the onboarding guide."],
+  "actions": [
+    {"owner": "Linh", "action": "Draft the update", "due_date": null}
+  ]
+}
+```
+
+Run the API tests and capture live predictions for the 20 labeled synthetic cases.
+
+```bash
+.venv/bin/python -m pytest -q tests/test_meeting_api.py
+.venv/bin/python scripts/week-02/evaluate_meetings.py
+```
+
+The evaluation script writes `evidence/week-02/predictions.json`. Use a separate output path with `--output` to keep an existing run.
